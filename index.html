@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASHMER AI Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      transition: all 0.3s ease-in-out;
+    }
+
+    .message {
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeInUp 0.3s forwards;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .bot {
+      animation-delay: 0.1s;
+    }
+
+    .typing {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid;
+      animation: typing 2s steps(30, end), blink 0.5s step-end infinite alternate;
+    }
+
+    @keyframes typing {
+      from {
+        width: 0;
+      }
+
+      to {
+        width: 100%;
+      }
+    }
+
+    @keyframes blink {
+      50% {
+        border-color: transparent;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-black text-white min-h-screen flex items-center justify-center transition-colors duration-500">
+  <div class="w-full max-w-2xl p-4">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-3xl font-bold text-center w-full">ASHMER AI Chat</h1>
+      <button id="toggleTheme" class="absolute top-4 right-4 px-2 py-1 bg-white text-black rounded text-sm">Toggle Theme</button>
+    </div>
+
+    <div id="chat" class="space-y-4 mb-6 overflow-y-auto max-h-[60vh] pr-2"></div>
+
+    <div class="mb-4 grid grid-cols-2 gap-2 text-sm text-gray-300">
+      <button class="bg-gray-700 rounded px-3 py-2 hover:bg-gray-600" onclick="suggest('What can you do?')">What can you do?</button>
+      <button class="bg-gray-700 rounded px-3 py-2 hover:bg-gray-600" onclick="suggest('Tell me a fun fact')">Tell me a fun fact</button>
+      <button class="bg-gray-700 rounded px-3 py-2 hover:bg-gray-600" onclick="suggest('Give me a quote')">Give me a quote</button>
+      <button class="bg-gray-700 rounded px-3 py-2 hover:bg-gray-600" onclick="suggest('Help me with something')">Help me with something</button>
+    </div>
+
+    <form id="chat-form" class="flex gap-2 items-center">
+      <input id="prompt" type="text" placeholder="Type your message..." class="flex-1 p-2 bg-white text-black rounded">
+      <button type="button" id="mic" class="bg-white text-black rounded px-2 py-2 hover:bg-gray-200">
+        🎙️
+      </button>
+      <button type="submit" class="px-4 py-2 bg-white text-black font-semibold rounded hover:bg-gray-200">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('prompt');
+    const mic = document.getElementById('mic');
+    const toggleTheme = document.getElementById('toggleTheme');
+    let darkMode = true;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      addMessage('user', prompt);
+      input.value = '';
+
+      addTyping();
+
+      const res = await fetch('https://ashmer-ai.ashutoshmerwade-pro.workers.dev/', {
+        method: 'POST',
+        body: JSON.stringify(prompt),
+      });
+
+      removeTyping();
+
+      const data = await res.json();
+      addMessage('bot', data.content);
+    });
+
+    function addMessage(role, text) {
+      const message = document.createElement('div');
+      message.className = `message p-3 rounded ${role === 'user' ? 'bg-white text-black self-end' : 'bg-gray-800 text-white self-start bot'}`;
+      message.textContent = text;
+      chat.appendChild(message);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function suggest(text) {
+      input.value = text;
+      input.focus();
+    }
+
+    function addTyping() {
+      const typing = document.createElement('div');
+      typing.id = 'typing';
+      typing.className = 'message bot bg-gray-800 text-white p-3 rounded typing';
+      typing.textContent = 'Typing...';
+      chat.appendChild(typing);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typing = document.getElementById('typing');
+      if (typing) typing.remove();
+    }
+
+    mic.addEventListener('click', () => {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'en-US';
+      recognition.start();
+      recognition.onresult = (event) => {
+        input.value = event.results[0][0].transcript;
+      };
+    });
+
+    toggleTheme.addEventListener('click', () => {
+      darkMode = !darkMode;
+      document.body.classList.toggle('bg-black', darkMode);
+      document.body.classList.toggle('text-white', darkMode);
+      document.body.classList.toggle('bg-white', !darkMode);
+      document.body.classList.toggle('text-black', !darkMode);
+    });
+  </script>
+</body>
+
+</html>
